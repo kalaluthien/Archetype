@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import enum
-
 from functools import reduce
 from fractions import Fraction
-from typing import Any, List, Tuple, Set, Optional, Iterable
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
 
 
 class Dim:
-    """ Class for dimension of physical quantity """
-
+    """ Class to represent dimension of physical quantity """
     def __init__(
         self,
         mass: int=0,
@@ -74,7 +78,8 @@ class _Qtag(enum.Enum):
 
 
 class Quant:
-    """ Class for physical quantity """
+    """ Class to represent physical quantity """
+    by_name: Dict[str, Quant] = {}
 
     def __init__(
         self,
@@ -84,11 +89,18 @@ class Quant:
         tag: _Qtag=_Qtag.VAR,
         value: Fraction=Fraction(0),
     ):
+        if name not in Quant.by_name:
+            Quant.by_name[name] = self
+
         self.name = name
         self.operands = operands
         self.dim = Dim(dim[0], dim[1], dim[2])
         self.tag = tag
         self.value = value if self.tag is _Qtag.CST else None
+
+    @classmethod
+    def from_name(cls, name: str) -> Quant:
+        return Quant.by_name[name]
 
     @classmethod
     def from_const(
@@ -131,16 +143,8 @@ class Quant:
         if self.is_var:
             return self.name
 
-        if self.is_sum:
-            return '(' + '+'.join([str(x) for x in self.operands]) + ')'
-
-        if self.is_prod:
-            return '(' + '*'.join([str(x) for x in self.operands]) + ')'
-
-        if self.is_frac:
-            return '(' + '/'.join([str(x) for x in self.operands]) + ')'
-
-        raise Exception(f'Invalid tag: {self.tag}')
+        op = '+' if self.is_sum else '*' if self.is_prod else '/'
+        return '(' + op.join([str(x) for x in self.operands]) + ')'
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Quant):
@@ -157,6 +161,9 @@ class Quant:
             if operands_count != len(other.operands):
                 return False
 
+            # This logic is not needed assuming that
+            # each `.operands` array is sorted by some rules.
+            # Please remove the block after the issue is resolved.
             marked: Set[int] = set()
             for i in range(operands_count):
                 failed = True
@@ -190,16 +197,65 @@ class Quant:
                 name=self.name,
                 operands=[],
                 dim=(self.dim[0], self.dim[1], self.dim[2]),
-                tag=self.tag,
+                tag=_Qtag.VAR,
             )
 
-        if self.is_sum or self.is_prod or self.is_frac:
-            copied_operands = [x.__copy__() for x in self.operands]
-            return Quant(
-                name=self.name,
-                operands=copied_operands,
-                dim=(self.dim[0], self.dim[1], self.dim[2]),
-                tag=self.tag,
-            )
+        copied_operands = [x.__copy__() for x in self.operands]
+        return Quant(
+            name=self.name,
+            operands=copied_operands,
+            dim=(self.dim[0], self.dim[1], self.dim[2]),
+            tag=self.tag,
+        )
 
-        raise Exception(f'Invalid tag: {self.tag}')
+    # +self
+    def __pos__(self) -> Quant:
+        return self
+
+    # -self
+    def __neg__(self) -> Quant:
+        return -1 * self
+
+    # self + other
+    def __add__(self, other: Any) -> Quant:
+        return NotImplemented
+
+    # other + self
+    def __radd__(self, other: Any) -> Quant:
+        return self + other
+
+    # self - other
+    def __sub__(self, other: Any) -> Quant:
+        return self + (-other)
+
+    # other - sub
+    def __rsub__(self, other: Any) -> Quant:
+        return -self + other
+
+    # self * other
+    def __mul__(self, other: Any) -> Quant:
+        return NotImplemented
+
+    # other * self
+    def __rmul__(self, other: Any) -> Quant:
+        return self * other
+
+    # self / other
+    def __truediv__(self, other: Any) -> Quant:
+        return NotImplemented
+
+    # other / self
+    def __rtruediv__(self, other: Any) -> Quant:
+        return NotImplemented
+
+
+def _factor(x: Quant, y: Quant) -> Tuple[Quant, Quant, Quant]:
+    return NotImplemented
+
+
+def _rewrite_add(x: Quant, y: Quant) -> Optional[Quant]:
+    return NotImplemented
+
+
+def _rewrite_mul(x: Quant, y: Quant) -> Optional[Quant]:
+    return NotImplemented
