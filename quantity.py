@@ -1,3 +1,4 @@
+""" Quantity """
 from __future__ import annotations
 
 import enum
@@ -250,12 +251,15 @@ class Quant:
 
 
 def _factor(x: Quant, y: Quant) -> Tuple[Quant, Quant, Quant]:
+    """ factor two quantities and find greatest common division """
     return NotImplemented
 
 
 def _rewrite_add(x: Quant, y: Quant) -> Optional[Quant]:
+    """ rewrite sum form """
     return NotImplemented
 
 
 def _rewrite_mul(x: Quant, y: Quant) -> Optional[Quant]:
+    """ rewrite product form """
     return NotImplemented
