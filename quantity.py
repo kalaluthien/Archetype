@@ -17,19 +17,19 @@ class Dim:
     """ Class to represent dimension of physical quantity """
     def __init__(
         self,
-        mass: int=0,
         length: int=0,
+        mass: int=0,
         time: int=0,
     ):
-        self.mass = mass
         self.length = length
+        self.mass = mass
         self.time = time
 
     def __getitem__(self, item: int) -> int:
-        return [self.mass, self.length, self.time][item]
+        return [self.length, self.mass, self.time][item]
 
     def __iter__(self) -> Iterable[int]:
-        for item in [self.mass, self.length, self.time]:
+        for item in [self.length, self.mass, self.time]:
             yield item
 
     def __eq__(self, other: Any) -> bool:
@@ -37,21 +37,21 @@ class Dim:
             return False
 
         return all([
-            self.mass == other[0],
-            self.length == other[1],
+            self.length == other[0],
+            self.mass == other[1],
             self.time == other[2],
         ])
 
     def __neg__(self) -> Dim:
-        return Dim(-self.mass, -self.length, -self.time)
+        return Dim(-self.length, -self.mass, -self.time)
 
     def __add__(self, other: object) -> Dim:
         if not isinstance(other, Dim):
             return NotImplemented
 
         return Dim(
-            self.mass + other.mass,
             self.length + other.length,
+            self.mass + other.mass,
             self.time + other.time
         )
 
@@ -60,13 +60,13 @@ class Dim:
             return NotImplemented
 
         return Dim(
-            self.mass - other.mass,
             self.length - other.length,
+            self.mass - other.mass,
             self.time - other.time
         )
 
     def __str__(self) -> str:
-        return f'[{self.mass},{self.length},{self.time}]'
+        return f'[{self.length},{self.mass},{self.time}]'
 
 
 class _Qtag(enum.Enum):
@@ -80,8 +80,6 @@ class _Qtag(enum.Enum):
 
 class Quant:
     """ Class to represent physical quantity """
-    by_name: Dict[str, Quant] = {}
-
     def __init__(
         self,
         name: str,
@@ -90,9 +88,6 @@ class Quant:
         tag: _Qtag=_Qtag.VAR,
         value: Fraction=Fraction(0),
     ):
-        if name not in Quant.by_name:
-            Quant.by_name[name] = self
-
         self.name = name
         self.operands = operands
         self.dim = Dim(dim[0], dim[1], dim[2])
@@ -100,8 +95,28 @@ class Quant:
         self.value = value if self.tag is _Qtag.CST else None
 
     @classmethod
-    def from_name(cls, name: str) -> Quant:
-        return Quant.by_name[name]
+    def length(cls, name: str) -> Quant:
+        return Quant(
+            name=name,
+            operands=[],
+            dim=(1, 0, 0),
+        )
+
+    @classmethod
+    def mass(cls, name: str) -> Quant:
+        return Quant(
+            name=name,
+            operands=[],
+            dim=(0, 1, 0),
+        )
+
+    @classmethod
+    def time(cls, name: str) -> Quant:
+        return Quant(
+            name=name,
+            operands=[],
+            dim=(0, 0, 1),
+        )
 
     @classmethod
     def from_const(
