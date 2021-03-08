@@ -48,28 +48,22 @@ class Dim:
     def __neg__(self) -> Dim:
         return Dim(-self.length, -self.mass, -self.time)
 
-    def __add__(self, other: object) -> Dim:
-        if not isinstance(other, Dim):
-            return NotImplemented
-
+    def __add__(self, other: Any) -> Dim:
         return Dim(
-            self.length + other.length,
-            self.mass + other.mass,
-            self.time + other.time
+            self.length + other[0],
+            self.mass + other[1],
+            self.time + other[2],
         )
 
-    def __sub__(self, other: object) -> Dim:
-        if not isinstance(other, Dim):
-            return NotImplemented
-
+    def __sub__(self, other: Any) -> Dim:
         return Dim(
-            self.length - other.length,
-            self.mass - other.mass,
-            self.time - other.time
+            self.length - other[0],
+            self.mass - other[1],
+            self.time - other[2],
         )
 
     def __str__(self) -> str:
-        return f'[{self.length},{self.mass},{self.time}]'
+        return f'({self.length},{self.mass},{self.time})'
 
 
 class _Qtag(enum.Enum):
@@ -166,8 +160,6 @@ class Quant:
         return '(' + op.join([str(x) for x in self.operands]) + ')'
 
     def __eq__(self, other: Any) -> bool:
-        assert other is not None
-
         if not isinstance(other, Quant):
             return self.value == other
 
@@ -294,6 +286,8 @@ class Quant:
 
     # self * other
     def __mul__(self, other: Any) -> Quant:
+        assert other is not None
+
         return NotImplemented
 
     # other * self
@@ -302,23 +296,33 @@ class Quant:
 
     # self / other
     def __truediv__(self, other: Any) -> Quant:
+        assert other is not None
+
         return NotImplemented
 
     # other / self
     def __rtruediv__(self, other: Any) -> Quant:
+        assert other is not None
+
         return NotImplemented
 
 
 def _factor(x: Quant, y: Quant) -> Tuple[Quant, Quant, Quant]:
     """ factor two quantities and find greatest common division """
+    assert x is not None and y is not None
+
     return NotImplemented
 
 
 def _rewrite_add(x: Quant, y: Quant) -> Optional[Quant]:
     """ rewrite sum form """
+    assert x is not None and y is not None
+
     return NotImplemented
 
 
 def _rewrite_mul(x: Quant, y: Quant) -> Optional[Quant]:
     """ rewrite product form """
+    assert x is not None and y is not None
+
     return NotImplemented
