@@ -32,6 +32,9 @@ class Dim:
         for item in [self.length, self.mass, self.time]:
             yield item
 
+    def __len__(self) -> int:
+        return 3
+
     def __eq__(self, other: Any) -> bool:
         if other is None:
             return False
@@ -162,9 +165,11 @@ class Quant:
         op = '+' if self.is_sum else '*' if self.is_prod else '/'
         return '(' + op.join([str(x) for x in self.operands]) + ')'
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
+        assert other is not None
+
         if not isinstance(other, Quant):
-            return NotImplemented
+            return self.value == other
 
         if self.is_const and other.is_const:
             return self.value == other.value
@@ -203,10 +208,8 @@ class Quant:
 
     def __copy__(self) -> Quant:
         if self.is_const:
-            return Quant.from_const(
-                value=self.value,
-                dim=(self.dim[0], self.dim[1], self.dim[2]),
-            )
+            dim =  (self.dim[0], self.dim[1], self.dim[2])
+            return Quant.from_const(value=self.value, dim=dim)
 
         if self.is_var:
             return Quant(
@@ -234,7 +237,48 @@ class Quant:
 
     # self + other
     def __add__(self, other: Any) -> Quant:
-        return NotImplemented
+        assert other is not None
+
+        dim =  (self.dim[0], self.dim[1], self.dim[2])
+
+        if not isinstance(other, Quant):
+            other = Quant.from_const(other, dim)
+
+        # gather terms
+        xs: List[Quant] = []
+        xs += (self.operands if self.is_sum else [self])
+        xs += (other.operands if other.is_sum else [other])
+
+        assert all(not x.is_sum for x in xs)
+
+        # reduce terms
+        ys: List[Quant] = []
+        for x in xs:
+            found = None
+            for i, y in enumerate(ys):
+                found = _rewrite_add(x, y)
+                if found is not None:
+                    ys[i] = found
+                    break
+            if found is None:
+                ys.append(x)
+
+        ys = [y for y in ys if not y.is_const or y.value != 0]
+        ys.sort(key=lambda y: y.name)
+
+        # return primitive cases
+        if len(ys) == 0:
+            return Quant.from_const(0, dim)
+        elif len(ys) == 1:
+            return ys[0]
+
+        # return recursive case
+        return Quant(
+            name='__sum__',
+            operands=ys,
+            dim=dim,
+            tag=_Qtag.ADD,
+        )
 
     # other + self
     def __radd__(self, other: Any) -> Quant:
