@@ -255,19 +255,19 @@ class Quant:
             if found is None:
                 ys.append(x)
 
-        ys = [y for y in ys if not y.is_const or y.value != 0]
-        ys.sort(key=lambda y: y.name)
+        terms = [y for y in ys if not y.is_const or y.value != 0]
+        terms.sort(key=lambda term: term.name)
 
         # return primitive cases
-        if len(ys) == 0:
+        if len(terms) == 0:
             return Quant.from_const(0, dim)
-        elif len(ys) == 1:
-            return ys[0]
+        elif len(terms) == 1:
+            return terms[0]
 
-        # return recursive case
+        # return combined case
         return Quant(
             name='__sum__',
-            operands=ys,
+            operands=terms,
             dim=dim,
             tag=_Qtag.ADD,
         )
