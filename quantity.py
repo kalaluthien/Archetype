@@ -231,7 +231,7 @@ class Quant:
     def __add__(self, other: Any) -> Quant:
         assert other is not None
 
-        dim =  (self.dim[0], self.dim[1], self.dim[2])
+        dim = (self.dim[0], self.dim[1], self.dim[2])
 
         if not isinstance(other, Quant):
             other = Quant.from_const(other, dim)
@@ -255,16 +255,16 @@ class Quant:
             if found is None:
                 ys.append(x)
 
-        terms = [y for y in ys if not y.is_const or y.value != 0]
+        terms = [y for y in ys
+                 if not (y.is_const and y.value == 0)]
         terms.sort(key=lambda term: term.name)
 
-        # return primitive cases
+        # return
         if len(terms) == 0:
             return Quant.from_const(0, dim)
         elif len(terms) == 1:
             return terms[0]
 
-        # return combined case
         return Quant(
             name='__sum__',
             operands=terms,
@@ -288,7 +288,48 @@ class Quant:
     def __mul__(self, other: Any) -> Quant:
         assert other is not None
 
-        return NotImplemented
+        if not isinstance(other, Quant):
+            other = Quant.from_const(other)
+
+        # gather terms
+        xs: List[Quant] = []
+        xs += (self.operands if self.is_prod else [self])
+        xs += (other.operands if other.is_prod else [other])
+
+        assert all(not x.is_prod for x in xs)
+
+        # reduce terms
+        ys: List[Quant] = []
+        for x in xs:
+            found = None
+            for i, y in enumerate(ys):
+                found = _rewrite_mul(x, y)
+                if found is not None:
+                    ys[i] = found
+                    break
+            if found is None:
+                ys.append(x)
+
+        terms = [y for y in ys
+                 if not (y.is_const and y.value == 1 and y.dim == (0, 0, 0))]
+        terms.sort(key=lambda term: term.name)
+
+        dim = (self.dim[0] + other.dim[0],
+               self.dim[1] + other.dim[1],
+               self.dim[2] + other.dim[2])
+
+        # return
+        if len(terms) == 0:
+            return Quant.from_const(1, dim)
+        elif len(terms) == 1:
+            return terms[0]
+
+        return Quant(
+            name='__mul__',
+            operands=terms,
+            dim=dim,
+            tag=_Qtag.ADD,
+        )
 
     # other * self
     def __rmul__(self, other: Any) -> Quant:
@@ -318,11 +359,11 @@ def _rewrite_add(x: Quant, y: Quant) -> Optional[Quant]:
     """ rewrite sum form """
     assert x is not None and y is not None
 
-    return NotImplemented
+    return None
 
 
 def _rewrite_mul(x: Quant, y: Quant) -> Optional[Quant]:
     """ rewrite product form """
     assert x is not None and y is not None
 
-    return NotImplemented
+    return None
