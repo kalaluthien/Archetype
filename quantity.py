@@ -170,26 +170,7 @@ class Quant:
             return self.name == other.name
 
         if self.is_sum and other.is_sum or self.is_prod and other.is_prod:
-            operands_count = len(self.operands)
-            if operands_count != len(other.operands):
-                return False
-
-            # This logic is not needed assuming that
-            # each `.operands` array is sorted by some rules.
-            # Please remove the block after the issue is resolved.
-            marked: Set[int] = set()
-            for i in range(operands_count):
-                failed = True
-                for j in range(operands_count):
-                    if j in marked:
-                        continue
-                    if self.operands[i] == other.operands[j]:
-                        marked.add(j)
-                        failed = False
-                        break
-                if failed:
-                    return False
-            return True
+            return all(x == y for x, y in zip(self.operands, other.operands))
 
         if self.is_frac and other.is_frac:
             fst = self.operands[0] == other.operands[0]
@@ -259,7 +240,6 @@ class Quant:
                  if not (y.is_const and y.value == 0)]
         terms.sort(key=lambda term: term.name)
 
-        # return
         if len(terms) == 0:
             return Quant.from_const(0, dim)
         elif len(terms) == 1:
@@ -291,6 +271,10 @@ class Quant:
         if not isinstance(other, Quant):
             other = Quant.from_const(other)
 
+        dim = (self.dim[0] + other.dim[0],
+               self.dim[1] + other.dim[1],
+               self.dim[2] + other.dim[2])
+
         # gather terms
         xs: List[Quant] = []
         xs += (self.operands if self.is_prod else [self])
@@ -314,11 +298,6 @@ class Quant:
                  if not (y.is_const and y.value == 1 and y.dim == (0, 0, 0))]
         terms.sort(key=lambda term: term.name)
 
-        dim = (self.dim[0] + other.dim[0],
-               self.dim[1] + other.dim[1],
-               self.dim[2] + other.dim[2])
-
-        # return
         if len(terms) == 0:
             return Quant.from_const(1, dim)
         elif len(terms) == 1:
@@ -339,20 +318,42 @@ class Quant:
     def __truediv__(self, other: Any) -> Quant:
         assert other is not None
 
-        return NotImplemented
+        if not isinstance(other, Quant):
+            other = Quant.from_const(other)
+
+        dim = (self.dim[0] - other.dim[0],
+               self.dim[1] - other.dim[1],
+               self.dim[2] - other.dim[2])
+
+        _, numer, denom = _factor(self, other)
+
+        if numer.is_const and numer.value == 0:
+            return Quant.from_const(0, dim)
+        elif denom.is_const and denom.value is not None:
+            inv_dim = (-other.dim[0], -other.dim[1], -other.dim[2])
+            return numer * Quant.from_const(1 / denom.value, inv_dim)
+
+        return Quant(
+            name='__div__',
+            operands=[numer, denom],
+            dim=dim,
+            tag=_Qtag.DIV,
+        )
 
     # other / self
     def __rtruediv__(self, other: Any) -> Quant:
         assert other is not None
 
-        return NotImplemented
+        return Quant.from_const(other) / self
 
 
 def _factor(x: Quant, y: Quant) -> Tuple[Quant, Quant, Quant]:
     """ factor two quantities and find greatest common division """
     assert x is not None and y is not None
 
-    return NotImplemented
+    one = Quant.from_const(1)
+
+    return one, x, y
 
 
 def _rewrite_add(x: Quant, y: Quant) -> Optional[Quant]:
