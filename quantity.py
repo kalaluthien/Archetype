@@ -217,12 +217,15 @@ class Quant:
         if not isinstance(other, Quant):
             other = Quant.from_const(other, dim)
 
-        # gather terms
-        xs: List[Quant] = []
-        xs += (self.operands if self.is_sum else [self])
-        xs += (other.operands if other.is_sum else [other])
+        assert self.dim == other.dim
 
-        assert all(not x.is_sum for x in xs)
+        # gather terms
+        def flatten(xs):
+            while any(x.is_sum for x in xs):
+                xs = sum((x.operands if x.is_sum else [x] for x in xs), [])
+            return xs
+
+        xs = flatten([self, other])
 
         # reduce terms
         ys: List[Quant] = []
@@ -236,6 +239,7 @@ class Quant:
             if found is None:
                 ys.append(x)
 
+        # remove terms
         terms = [y for y in ys
                  if not (y.is_const and y.value == 0)]
         terms.sort(key=lambda term: term.name)
@@ -276,11 +280,12 @@ class Quant:
                self.dim[2] + other.dim[2])
 
         # gather terms
-        xs: List[Quant] = []
-        xs += (self.operands if self.is_prod else [self])
-        xs += (other.operands if other.is_prod else [other])
+        def flatten(xs):
+            while any(x.is_prod for x in xs):
+                xs = sum((x.operands if x.is_prod else [x] for x in xs), [])
+            return xs
 
-        assert all(not x.is_prod for x in xs)
+        xs = flatten([self, other])
 
         # reduce terms
         ys: List[Quant] = []
@@ -294,6 +299,7 @@ class Quant:
             if found is None:
                 ys.append(x)
 
+        # remove terms
         terms = [y for y in ys
                  if not (y.is_const and y.value == 1 and y.dim == (0, 0, 0))]
         terms.sort(key=lambda term: term.name)
@@ -307,7 +313,7 @@ class Quant:
             name='__mul__',
             operands=terms,
             dim=dim,
-            tag=_Qtag.ADD,
+            tag=_Qtag.MUL,
         )
 
     # other * self
@@ -325,8 +331,10 @@ class Quant:
                self.dim[1] - other.dim[1],
                self.dim[2] - other.dim[2])
 
+        # reduce terms
         _, numer, denom = _factor(self, other)
 
+        # remove terms
         if numer.is_const and numer.value == 0:
             return Quant.from_const(0, dim)
         elif denom.is_const and denom.value is not None:
