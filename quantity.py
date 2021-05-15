@@ -230,13 +230,11 @@ class Quant:
         # reduce terms
         ys: List[Quant] = []
         for x in xs:
-            found = None
             for i, y in enumerate(ys):
-                found = _rewrite_add(x, y)
-                if found is not None:
+                if (found := _rewrite_add(x, y)) is not None:
                     ys[i] = found
                     break
-            if found is None:
+            else:
                 ys.append(x)
 
         # remove terms
@@ -290,13 +288,11 @@ class Quant:
         # reduce terms
         ys: List[Quant] = []
         for x in xs:
-            found = None
             for i, y in enumerate(ys):
-                found = _rewrite_mul(x, y)
-                if found is not None:
+                if (found := _rewrite_mul(x, y)) is not None:
                     ys[i] = found
                     break
-            if found is None:
+            else:
                 ys.append(x)
 
         # remove terms
